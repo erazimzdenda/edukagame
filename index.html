@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Útěk ze školy · ERAZIM Polná</title>
+  <meta name="description" content="Společná úniková hra pro žáky ZŠ ERAZIM Polná – plňte úkoly a najděte cestu ven ze školy.">
+  <meta name="theme-color" content="#2f73c4">
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ PŘIHLÁŠENÍ / LOBBY ============ -->
+<section id="lobby" class="screen">
+  <header class="brand">
+    <img class="logo-img" src="assets/logo.png" alt="ERAZIM Polná" width="408" height="186">
+    <div class="title">
+      <h1>Útěk ze školy</h1>
+      <p>Společná úniková hra – plňte úkoly, pomáhejte si a najděte cestu ven!</p>
+    </div>
+  </header>
+
+  <div class="lobby-grid">
+    <div class="card">
+      <h2><span class="step">1</span> Nakresli si obličej</h2>
+      <div class="painter">
+        <canvas id="faceCanvas" width="256" height="256" aria-label="Plátno pro kreslení obličeje"></canvas>
+        <div class="tools">
+          <div class="swatches" id="penColors" aria-label="Barva pera"></div>
+          <div class="tool-row">
+            <button class="tool size" data-size="5" title="Tenké pero"><i style="width:6px;height:6px"></i></button>
+            <button class="tool size active" data-size="10" title="Střední pero"><i style="width:11px;height:11px"></i></button>
+            <button class="tool size" data-size="20" title="Silné pero"><i style="width:18px;height:18px"></i></button>
+            <button class="tool" id="eraser" title="Guma">🧽</button>
+            <button class="tool" id="undo" title="Zpět">↩️</button>
+            <button class="tool" id="clearFace" title="Vymazat">🗑️</button>
+            <button class="tool" id="smile" title="Úsměv">🙂</button>
+          </div>
+          <div class="label-sm">Barva kůže</div>
+          <div class="swatches" id="skinColors"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">2</span> Vyber si barvu a jméno</h2>
+      <div class="preview-wrap"><canvas id="preview"></canvas></div>
+      <div class="swatches big" id="bodyColors" aria-label="Barva těla"></div>
+      <label class="field">Tvoje jméno
+        <input id="nameInput" maxlength="16" autocomplete="off" placeholder="např. Ema">
+      </label>
+      <label class="field">Kód třídy <small>(všichni musí mít stejný)</small>
+        <input id="roomInput" maxlength="20" autocomplete="off" placeholder="např. 7A">
+      </label>
+      <button id="startBtn" class="btn primary big">Vstoupit do školy 🏫</button>
+      <p id="lobbyMsg" class="msg"></p>
+    </div>
+  </div>
+  <footer class="howto">
+    <b>Jak hrát:</b> Chodíš šipkami / WASD (na mobilu prstem vlevo dole). V každé učebně je barevné stanoviště s písmenem.
+    Každý u úkolu dostane jen svoji indicii – sejděte se v učebně, řekněte si je a odpovězte společně. Pak se písmeno rozsvítí. Až svítí celé <b>ERAZIM</b>, otevře se východ. Nejde o závod – pomáhejte si! 💛
+  </footer>
+</section>
+
+<!-- ============ HRA ============ -->
+<section id="game" class="screen hidden">
+  <div id="view"></div>
+
+  <div class="hud-top">
+    <div class="panel progress">
+      <div class="hud-logo" id="hudLetters"></div>
+      <div class="score"><span id="score">0</span> společných bodů · <span id="solvedCount">0</span> úkolů</div>
+    </div>
+    <div class="panel right">
+      <canvas id="minimap" width="248" height="128"></canvas>
+      <button id="playersBtn" class="chip">👥 <span id="playerCount">1</span></button>
+      <div id="netStatus" class="chip status">Připojuji…</div>
+    </div>
+  </div>
+  <div id="feed" aria-live="polite"></div>
+
+  <div id="joyZone"></div>
+  <div id="joyBase" class="hidden"><div id="joyKnob"></div></div>
+
+  <div class="hud-bottom">
+    <button id="chatBtn" class="round" title="Rychlá zpráva">💬</button>
+    <button id="actionBtn" class="action hidden">✏️ Otevřít úkol</button>
+  </div>
+
+  <div id="chatMenu" class="popup hidden"></div>
+  <div id="playersPanel" class="popup hidden"></div>
+</section>
+
+<!-- Úkol -->
+<div id="taskModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-head" id="taskHead">
+      <span class="big-letter" id="taskLetter">E</span>
+      <div>
+        <div class="subj" id="taskSubj">Matematika</div>
+        <div class="dots" id="taskDots"></div>
+      </div>
+      <button class="close" id="taskClose" aria-label="Zavřít">✕</button>
+    </div>
+    <div class="sheet-body" id="taskBody"></div>
+    <div class="sheet-foot">
+      <button class="btn ghost" id="hintBtn">💡 Nápověda</button>
+      <button class="btn ghost" id="helpBtn">🙋 Zavolat kamarády</button>
+    </div>
+  </div>
+</div>
+
+<!-- Úvod -->
+<div id="introModal" class="modal hidden">
+  <div class="sheet narrow">
+    <div class="sheet-body center">
+      <div class="emoji-big">🏫🔒</div>
+      <h2>Jste zavření ve škole!</h2>
+      <p>Dveře ven se otevřou, až se rozsvítí všechna písmena <b>ERAZIM</b>.</p>
+      <ul class="intro-list">
+        <li><b class="c-e">E</b> Matematika · <b class="c-r">R</b> Zeměpis · <b class="c-a">A</b> Dějepis</li>
+        <li><b class="c-z">Z</b> Přírodopis · <b class="c-m">M</b> Programování</li>
+        <li>U každého úkolu dostane <b>každý jinou indicii</b> 🔎 – odpověď najdete, jen když se sejdete v učebně a dáte indicie dohromady.</li>
+        <li>Každá správná odpověď pomáhá celé třídě.</li>
+        <li>Nevíš? Klikni na <b>🙋 Zavolat kamarády</b> nebo pošli 💬 zprávu.</li>
+      </ul>
+      <p class="keys">⌨️ Šipky / WASD = chůze · E / Enter = otevřít úkol</p>
+      <button class="btn primary big" id="introOk">Jdeme na to! 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Výhra -->
+<div id="winModal" class="modal hidden">
+  <canvas id="confetti"></canvas>
+  <div class="sheet narrow">
+    <div class="sheet-body center">
+      <div class="emoji-big">🎉🌳☀️</div>
+      <h2>Hurá, jsi venku!</h2>
+      <p>Společně jste vyřešili <b id="winSolved">0</b> úkolů a získali <b id="winScore">0</b> bodů.</p>
+      <p id="winTeam" class="team"></p>
+      <p>Počkej na kamarády na školním dvoře – a třeba jim zamávej 👋</p>
+      <button class="btn primary big" id="winOk">Pokračovat</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
