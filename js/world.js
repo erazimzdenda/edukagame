@@ -216,7 +216,7 @@ export function buildWorld(scene, subjects) {
       for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) desk(cx - 5 + i * 10, r.z0 + 7 + j * 3);
     },
     dej(r, cx) {
-      board(cx, r.z0, 6, 2.2, chalk([{ t: '1348 – Karlova univerzita', s: 32 }, { t: '1918 – vznik ČSR', s: 32 }, { t: '1993 – Česká republika', s: 32 }], '#5b3a22', '#ffe9c4'), true);
+      board(cx, r.z0, 6, 2.2, chalk([{ t: '1914–1918  1. světová válka', s: 32 }, { t: '1939–1945  2. světová válka', s: 32 }, { t: '8. 5. 1945  konec války v Evropě', s: 32 }], '#5b3a22', '#ffe9c4'), true);
       for (const [x, z] of [[r.x0 + 2, r.z0 + 3], [r.x1 - 2, r.z0 + 3], [r.x0 + 2, r.z1 - 2.5], [r.x1 - 2, r.z1 - 2.5]]) {
         const col = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, WALL_H, 12), lam('#efe6d2'));
         col.position.set(x, WALL_H / 2, z); scene.add(col);
