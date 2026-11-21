@@ -63,8 +63,56 @@
   <footer class="howto">
     <b>Jak hrát:</b> Chodíš šipkami / WASD (na mobilu prstem vlevo dole). V každé učebně je barevné stanoviště s písmenem.
     Každý u úkolu dostane jen svoji indicii – sejděte se v učebně, řekněte si je a odpovězte společně. Pak se písmeno rozsvítí. Až svítí celé <b>ERAZIM</b>, otevře se východ. Nejde o závod – pomáhejte si! 💛
+      <div class="teacher-link"><button id="teacherBtn" class="btn ghost small">👩‍🏫 Pro učitele</button></div>
   </footer>
 </section>
+
+<!-- ============ PANEL UČITELE ============ -->
+<section id="teacher" class="screen hidden">
+  <div class="t-wrap">
+    <header class="t-head">
+      <img class="logo-img small" src="assets/logo.png" alt="ERAZIM Polná" width="408" height="186">
+      <div><h1>Panel pro učitele</h1><p class="muted" id="tStatus">–</p></div>
+      <button class="btn ghost" id="tBack">← Zpět</button>
+    </header>
+    <div class="card t-room">
+      <label class="field">Kód třídy
+        <div class="answer-row"><input id="tRoom" maxlength="20" autocomplete="off"><button class="btn primary" id="tWatch">Sledovat</button></div>
+      </label>
+      <div id="tRooms" class="t-rooms"></div>
+    </div>
+    <div class="t-grid">
+      <div class="card"><h2>🟢 Právě ve hře (<span id="tOnlineCount">0</span>)</h2><div id="tOnline"></div></div>
+      <div class="card"><h2>🔤 Postup třídy</h2><div class="hud-logo t-progress" id="tProgress"></div></div>
+    </div>
+    <div class="card">
+      <div class="t-hist-head">
+        <h2>🕒 Kdo se připojil (<span id="tHistCount">0</span>)</h2>
+        <select id="tPeriod"><option value="1">posledních 24 hodin</option><option value="7" selected>posledních 7 dní</option><option value="30">posledních 30 dní</option><option value="0">vše</option></select>
+      </div>
+      <div id="tHistory" class="t-table"></div>
+      <div class="t-actions"><button class="btn ghost" id="tCsv">⬇️ Stáhnout tabulku (CSV)</button><button class="btn ghost" id="tClear">🗑️ Smazat záznamy</button></div>
+      <p class="muted small-note">Hra nemá vlastní server – záznamy si pamatují prohlížeče hráčů a předávají si je mezi sebou.
+        Nejúplnější přehled uvidíte, když panel otevřete <b>během hodiny</b> nebo hned po ní, dokud jsou žáci připojení.
+        Panel si vše uloží i do tohoto prohlížeče.</p>
+    </div>
+    <details class="card"><summary><b>🔑 Změnit heslo</b></summary>
+      <div class="answer-row" style="margin-top:12px"><input id="tNewPw" type="password" placeholder="Nové heslo" autocomplete="new-password"><button class="btn primary" id="tNewPwBtn">Vytvořit</button></div>
+      <div id="tNewPwOut" class="muted" style="margin-top:10px"></div>
+    </details>
+  </div>
+</section>
+
+<div id="tLogin" class="modal hidden">
+  <div class="sheet narrow">
+    <div class="sheet-head"><span class="big-letter">🔑</span><div class="subj">Pro učitele</div><button class="close" id="tLoginClose" aria-label="Zavřít">✕</button></div>
+    <form class="sheet-body" id="tLoginForm">
+      <p>Zadejte heslo učitele.</p>
+      <div class="answer-row"><input id="tPw" type="password" autocomplete="current-password"><button class="btn primary">Vstoupit</button></div>
+      <p class="msg" id="tPwMsg"></p>
+    </form>
+  </div>
+</div>
 
 <!-- ============ HRA ============ -->
 <section id="game" class="screen hidden">
@@ -74,6 +122,7 @@
     <div class="panel progress">
       <div class="hud-logo" id="hudLetters"></div>
       <div class="score"><span id="score">0</span> společných bodů · <span id="solvedCount">0</span> úkolů</div>
+      <div id="missionChip" class="mission hidden"></div>
     </div>
     <div class="panel right">
       <canvas id="minimap" width="248" height="128"></canvas>
@@ -114,6 +163,22 @@
   </div>
 </div>
 
+<!-- Rozhovor s postavičkou -->
+<div id="npcModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-head" id="npcHead">
+      <span class="big-letter" id="npcEmoji">🤖</span>
+      <div><div class="subj" id="npcName">Robot</div><div class="npc-room" id="npcRoom"></div></div>
+      <button class="close" id="npcClose" aria-label="Zavřít">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="npc-bubble" id="npcSay"></div>
+      <div id="npcExtra"></div>
+      <div class="npc-btns" id="npcBtns"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Úvod -->
 <div id="introModal" class="modal hidden">
   <div class="sheet narrow">
@@ -127,6 +192,7 @@
         <li>U každého úkolu dostane <b>každý jinou indicii</b> 🔎 – odpověď najdete, jen když se sejdete v učebně a dáte indicie dohromady.</li>
         <li>Každá správná odpověď pomáhá celé třídě.</li>
         <li>Nevíš? Klikni na <b>🙋 Zavolat kamarády</b> nebo pošli 💬 zprávu.</li>
+        <li>V každé učebně žije <b>postavička</b> – promluv si s ní 💬. Řekne ti zajímavost, dá hádanku nebo úkol za body navíc.</li>
       </ul>
       <p class="keys">⌨️ Šipky / WASD = chůze · E / Enter = otevřít úkol</p>
       <button class="btn primary big" id="introOk">Jdeme na to! 🚀</button>
