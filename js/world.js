@@ -1,6 +1,7 @@
 // Školní budova: chodba, učebny podle písmen loga ERAZIM, naše třída a východ.
 import * as THREE from '../vendor/three.module.min.js';
 import { makeLabel } from './avatar.js';
+import { buildDecor, mergeStatic } from './decor.js';
 
 const WALL_H = 3;
 const T = 0.3;
@@ -43,7 +44,13 @@ export function buildWorld(scene, subjects) {
   const gateLetters = {};
   const S = Object.fromEntries(subjects.map((s) => [s.id, s]));
 
-  const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
+  const matCache = new Map();
+  const lam = (c, extra) => {
+    if (extra) return new THREE.MeshLambertMaterial({ color: c, ...extra });
+    const k = String(c instanceof THREE.Color ? c.getHexString() : c);
+    if (!matCache.has(k)) matCache.set(k, new THREE.MeshLambertMaterial({ color: c }));
+    return matCache.get(k);
+  };
   const wallMat = lam('#f4efe4');
   const addBox = (w, h, d, x, y, z, mat, collide = true) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -65,34 +72,52 @@ export function buildWorld(scene, subjects) {
   grass.rotation.x = -Math.PI / 2; grass.position.y = -0.02; scene.add(grass);
   const path = new THREE.Mesh(new THREE.PlaneGeometry(30, 4), lam('#e3d4b5'));
   path.rotation.x = -Math.PI / 2; path.position.set(42, -0.01, 0); scene.add(path);
-  const treeSpots = [[36, -9], [44, -12], [52, -6], [38, 9], [48, 12], [56, 7], [62, -2], [-34, -8], [-33, 10], [0, -22], [-14, 22], [14, 22], [24, -22]];
-  for (const [x, z] of treeSpots) {
-    const trunk = addBox(0.6, 2, 0.6, x, 1, z, lam('#8a5a36'));
-    trunk.userData.outside = true;
-    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 0), lam(['#5cb848', '#4aa63c', '#7cc242'][(x + z) & 1 ? 0 : 1]));
-    crown.position.set(x, 3.2, z); scene.add(crown);
-  }
-  // lavičky a hřiště venku
-  addBox(3, 0.5, 0.8, 40, 0.25, -4.5, lam('#c47a3a'));
-  addBox(3, 0.5, 0.8, 46, 0.25, 4.5, lam('#c47a3a'));
+  // hřiště venku (stromy, lavičky a další detaily jsou v decor.js)
   const pitch = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), lam('#d9734a'));
   pitch.rotation.x = -Math.PI / 2; pitch.position.set(54, 0, -14); scene.add(pitch);
 
   // --- podlahy
-  const corridorTex = canvasTex(256, 256, (c, w, h) => {
-    c.fillStyle = '#e9e5dc'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#dcd6ca';
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) c.fillRect(i * 64, j * 64, 64, 64);
+  const ERAZIM_COLS = ['#e8392b', '#f2861f', '#f5c21b', '#7cc242', '#2f73c4', '#8e3fa8'];
+  const hex = (c) => '#' + new THREE.Color(c).getHexString();
+  // chodba: světlé dlaždice a uprostřed duhový pás v barvách loga
+  const corridorTex = canvasTex(384, 192, (c) => {
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) {
+      c.fillStyle = j === 1 ? hex(tint(ERAZIM_COLS[i], 0.35)) : ((i + j) % 2 ? '#ece7dc' : '#f6f2ea');
+      c.fillRect(i * 64, j * 64, 64, 64);
+      c.strokeStyle = 'rgba(0,0,0,0.08)'; c.lineWidth = 2; c.strokeRect(i * 64 + 1, j * 64 + 1, 62, 62);
+    }
   });
   corridorTex.wrapS = corridorTex.wrapT = THREE.RepeatWrapping;
-  corridorTex.repeat.set(27, 3);
+  corridorTex.repeat.set(9, 1);
   const corr = new THREE.Mesh(new THREE.PlaneGeometry(54, 6), new THREE.MeshLambertMaterial({ map: corridorTex }));
   corr.rotation.x = -Math.PI / 2; corr.position.set(0, 0.01, 0); scene.add(corr);
 
   for (const r of ROOMS) {
     const subj = S[r.key];
-    const col = subj ? tint(subj.color, 0.72) : new THREE.Color('#d9c7a5');
-    const f = new THREE.Mesh(new THREE.PlaneGeometry(r.x1 - r.x0, r.z1 - r.z0), lam(col));
+    const w = r.x1 - r.x0, d = r.z1 - r.z0;
+    let tex;
+    if (subj) { // dlaždice ve dvou odstínech barvy předmětu
+      const a = hex(tint(subj.color, 0.55)), b = hex(tint(subj.color, 0.75));
+      tex = canvasTex(128, 128, (c) => {
+        c.fillStyle = a; c.fillRect(0, 0, 128, 128);
+        c.fillStyle = b; c.fillRect(0, 0, 64, 64); c.fillRect(64, 64, 64, 64);
+        c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2;
+        for (const v of [1, 64, 127]) { c.beginPath(); c.moveTo(v, 0); c.lineTo(v, 128); c.stroke(); c.beginPath(); c.moveTo(0, v); c.lineTo(128, v); c.stroke(); }
+      });
+      tex.repeat.set(w / 2.4, d / 2.4);
+    } else { // naše třída: dřevěné parkety
+      tex = canvasTex(256, 256, (c) => {
+        const woods = ['#d9a066', '#cf9558', '#e3b07a', '#c98e50'];
+        for (let i = 0; i < 8; i++) for (let j = 0; j < 2; j++) {
+          c.fillStyle = woods[(i * 3 + j) % 4]; c.fillRect(i * 32, j * 128 + (i % 2) * 64 - 64, 32, 128);
+          c.fillRect(i * 32, j * 128 + (i % 2) * 64 + 64, 32, 128);
+          c.strokeStyle = 'rgba(90,50,20,0.25)'; c.lineWidth = 2; c.strokeRect(i * 32, j * 128 + (i % 2) * 64, 32, 128);
+        }
+      });
+      tex.repeat.set(w / 4, d / 4);
+    }
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ map: tex }));
     f.rotation.x = -Math.PI / 2; f.position.set((r.x0 + r.x1) / 2, 0.01, (r.z0 + r.z1) / 2); scene.add(f);
   }
 
@@ -145,16 +170,73 @@ export function buildWorld(scene, subjects) {
     scene.add(sign);
   }
 
+  // --- barevné pruhy na stěnách (každá učebna ve své barvě, chodba duhově)
+  const BAND_H = 1.15;
+  function band(axis, at, from, to, color, stripe) {
+    if (to - from < 0.2) return;
+    const len = to - from, mid = (from + to) / 2;
+    if (axis === 'x') { // stěna podél osy x (vodorovná na mapě) – musí mizet spolu se zdí
+      const m = new THREE.Mesh(new THREE.BoxGeometry(len, BAND_H, 0.03), lam(color).clone());
+      m.position.set(mid, BAND_H / 2, at); m.material.transparent = true; scene.add(m);
+      walls.push({ mesh: m, horiz: true, pos: at, a: from, b: to });
+      if (stripe) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(len, 0.1, 0.04), lam(stripe).clone());
+        st.position.set(mid, BAND_H + 0.05, at); st.material.transparent = true; scene.add(st);
+        walls.push({ mesh: st, horiz: true, pos: at, a: from, b: to });
+      }
+    } else {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.03, BAND_H, len), lam(color)); m.position.set(at, BAND_H / 2, mid); scene.add(m);
+      if (stripe) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, len), lam(stripe)); st.position.set(at, BAND_H + 0.05, mid); scene.add(st); }
+    }
+  }
+  const IN = T / 2 + 0.016;
+  for (const r of ROOMS) {
+    const subj = S[r.key];
+    const base = subj ? hex(tint(subj.color, 0.45)) : '#e9c9a0', stripe = subj ? subj.color : '#c98e50';
+    const cx = (r.x0 + r.x1) / 2, doorZ = r.top ? r.z1 : r.z0;
+    for (const z of [r.z0 + IN, r.z1 - IN]) {
+      const wallZ = z < (r.z0 + r.z1) / 2 ? r.z0 : r.z1;
+      if (wallZ === doorZ) { band('x', z, r.x0 + IN, cx - 1.6, base, stripe); band('x', z, cx + 1.6, r.x1 - IN, base, stripe); }
+      else band('x', z, r.x0 + IN, r.x1 - IN, base, stripe);
+    }
+    band('z', r.x0 + IN, r.z0 + IN, r.z1 - IN, base, stripe);
+    band('z', r.x1 - IN, r.z0 + IN, r.z1 - IN, base, stripe);
+  }
+  // chodba: duhové úseky mezi dveřmi
+  for (const zc of [-3 + IN, 3 - IN]) {
+    const doors = [-18, 0, 18];
+    let x = -27 + IN, k = zc < 0 ? 0 : 3;
+    for (const dx of [...doors, 27 - IN + 1.6]) {
+      const end = dx - 1.6;
+      // rozdělit úsek na barevné kousky
+      const n = Math.max(1, Math.round((end - x) / 4));
+      const step = (end - x) / n;
+      for (let i = 0; i < n; i++) { const c = ERAZIM_COLS[k++ % 6]; band('x', zc, x + i * step, x + (i + 1) * step, hex(tint(c, 0.4)), c); }
+      x = dx + 1.6;
+    }
+  }
+  band('z', -27 + IN, -3 + IN, 3 - IN, hex(tint('#2f73c4', 0.4)), '#2f73c4');
+
   // --- vybavení učeben
-  const deskMat = lam('#d9a066'), legMat = lam('#6b7280'), chairMat = lam('#2f73c4');
+  const deskMat = lam('#e3b47a'), edgeMat = lam('#b98552'), legMat = lam('#6b7280'), chairMat = lam('#2f73c4'), pencilMat = lam('#f5c21b');
+  const BOOKS = ['#e8392b', '#f2861f', '#7cc242', '#2f73c4', '#8e3fa8', '#ec5f9c'];
   function desk(x, z, rot = 0) {
     const g = new THREE.Group();
-    const top = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 0.8), deskMat); top.position.y = 0.75; g.add(top);
-    for (const [lx, lz] of [[-0.7, -0.32], [0.7, -0.32], [-0.7, 0.32], [0.7, 0.32]]) {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), legMat); l.position.set(lx, 0.37, lz); g.add(l);
-    }
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), chairMat); seat.position.set(0, 0.45, 0.75); g.add(seat);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.08), chairMat); back.position.set(0, 0.72, 1.0); g.add(back);
+    const part = (w, h, d, mat, px, py, pz) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(px, py, pz); g.add(m); return m; };
+    part(1.6, 0.06, 0.8, deskMat, 0, 0.77, 0);
+    part(1.62, 0.04, 0.82, edgeMat, 0, 0.72, 0);
+    for (const sx of [-0.74, 0.74]) { part(0.06, 0.7, 0.06, legMat, sx, 0.36, -0.34); part(0.06, 0.7, 0.06, legMat, sx, 0.36, 0.34); part(0.06, 0.05, 0.7, legMat, sx, 0.08, 0); }
+    part(1.4, 0.2, 0.04, edgeMat, 0, 0.6, -0.36);
+    // věci na lavici (pevně daná "náhoda" podle polohy)
+    const k = Math.abs(Math.round(x * 7 + z * 13));
+    if (k % 3 !== 0) part(0.34, 0.04, 0.26, lam(BOOKS[k % BOOKS.length]), -0.35 + (k % 5) * 0.1, 0.82, 0.05).rotation.y = (k % 7) * 0.2;
+    if (k % 2 === 0) { const p = part(0.4, 0.025, 0.025, pencilMat, 0.4, 0.815, -0.15); p.rotation.y = 0.5; }
+    if (k % 4 === 1) part(0.22, 0.28, 0.16, lam(BOOKS[(k + 3) % BOOKS.length]), 0.9, 0.14, 0.2); // aktovka
+    // židle
+    part(0.48, 0.05, 0.46, chairMat, 0, 0.46, 0.75);
+    for (const [lx, lz] of [[-0.2, 0.55], [0.2, 0.55], [-0.2, 0.95], [0.2, 0.95]]) part(0.04, 0.46, 0.04, legMat, lx, 0.23, lz);
+    for (const lx of [-0.2, 0.2]) part(0.04, 0.42, 0.04, legMat, lx, 0.68, 0.97);
+    part(0.46, 0.24, 0.04, chairMat, 0, 0.8, 0.99);
     g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g);
     colliders.push({ x0: x - 0.8, x1: x + 0.8, z0: z - 0.4, z1: z + 0.4 });
     return g;
@@ -212,6 +294,7 @@ export function buildWorld(scene, subjects) {
       const land = new THREE.Mesh(new THREE.SphereGeometry(1.01, 8, 6, 0, 2, 0.6, 1.3), lam('#7cc242'));
       land.position.copy(globe.position); scene.add(land);
       this._spin = [globe, land];
+      globe.userData.dyn = land.userData.dyn = true;
       addBox(0.6, 1.2, 0.6, r.x0 + 2.2, 0.6, r.z0 + 2.5, lam('#8a5a36'));
       for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) desk(cx - 5 + i * 10, r.z0 + 7 + j * 3);
     },
@@ -241,10 +324,6 @@ export function buildWorld(scene, subjects) {
       const aq = addBox(2.6, 1.2, 1, cx + 5, 1.15, r.z0 + 1.2, lam('#7fd0f0', { transparent: true, opacity: 0.6 }));
       aq.userData.water = true;
       addBox(2.8, 0.55, 1.1, cx + 5, 0.27, r.z0 + 1.2, lam('#6b7280'), false);
-      for (let i = 0; i < 3; i++) {
-        const fish = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 6), lam('#f2861f'));
-        fish.rotation.z = Math.PI / 2; fish.position.set(cx + 4 + i * 0.8, 1.1 + (i % 2) * 0.3, r.z0 + 1.2); scene.add(fish);
-      }
       for (let i = 0; i < 2; i++) desk(cx - 5 + i * 10, r.z0 + 5);
     },
     pro(r, cx) {
@@ -293,7 +372,7 @@ export function buildWorld(scene, subjects) {
   scene.add(gate);
   colliders.push({ x0: gx - 0.3, x1: gx + 0.3, z0: -2.7, z1: -2.1 }, { x0: gx - 0.3, x1: gx + 0.3, z0: 2.1, z1: 2.7 });
   const door = new THREE.Mesh(new THREE.BoxGeometry(0.25, WALL_H, 3.4), lam('#7a8db3'));
-  door.position.set(EXIT_X, WALL_H / 2, 0); scene.add(door);
+  door.position.set(EXIT_X, WALL_H / 2, 0); door.userData.dyn = true; scene.add(door);
   const doorCollider = { x0: EXIT_X - 0.3, x1: EXIT_X + 0.3, z0: -1.7, z1: 1.7 };
   colliders.push(doorCollider);
   const lock = makeLabel('🔒 Zamčeno', { bg: '#1f2a44', color: '#fff', size: 40 });
@@ -324,8 +403,14 @@ export function buildWorld(scene, subjects) {
     scene.remove(lock);
   }
 
+  // --- detaily: nábytek, rostliny, zvířátka
+  const decor = buildDecor(scene, { lam, addCollider: (c) => colliders.push(c) });
+  mergeStatic(scene);
+  let lastPX = 0, lastPZ = 0;
+
   // --- průhlednost zdí, které zakrývají hráče
   function updateWalls(px, pz) {
+    lastPX = px; lastPZ = pz;
     for (const w of walls) {
       let fade = false;
       if (w.horiz) fade = w.pos > pz && w.pos - pz < 5.5 && px > w.a - 2 && px < w.b + 2;
@@ -341,6 +426,7 @@ export function buildWorld(scene, subjects) {
       st.ring.material.opacity = 0.45 + Math.sin(t * 3) * 0.25;
     }
     if (doorOpen && door.position.y > -WALL_H) door.position.y -= dt * 1.5;
+    decor.update(t, dt, lastPX, lastPZ);
   }
 
   return { colliders, stations, setLetter, openDoor, updateWalls, update, get doorOpen() { return doorOpen; } };

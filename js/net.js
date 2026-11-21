@@ -3,7 +3,7 @@
 // Režim ?local=1 propojí jen okna stejného prohlížeče (pro vyzkoušení).
 import { CONFIG } from './config.js';
 
-const ACTIONS = ['hello', 'pos', 'state', 'msg', 'help'];
+const ACTIONS = ['hello', 'pos', 'state', 'msg', 'help', 'log'];
 
 export async function connect(roomCode, { local = false } = {}) {
   const handlers = {};
