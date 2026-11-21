@@ -143,3 +143,50 @@ pre.code { background: #14202e; color: #7cffb2; padding: 14px; border-radius: 12
   .action { font-size: 17px; padding: 14px 16px; }
   .logo-img { width: 170px; }
 }
+
+/* ---------- panel učitele ---------- */
+.teacher-link { margin-top: 10px; text-align: right; }
+.btn.small { padding: 8px 12px; font-size: 14px; }
+.muted { color: var(--muted); }
+#teacher { background: var(--bg); }
+.t-wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+.t-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.t-head h1 { margin: 0; font-size: 28px; }
+.t-head p { margin: 2px 0 0; }
+.t-head .btn { margin-left: auto; }
+.logo-img.small { width: 130px; }
+.t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .t-grid { grid-template-columns: 1fr; } }
+.t-room .field { margin-top: 0; }
+.t-room .answer-row input { font-size: 18px; }
+.t-rooms { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--muted); font-weight: 700; font-size: 14px; }
+.t-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.t-row .muted { margin-left: auto; font-size: 14px; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex: none; }
+.t-progress { flex-wrap: wrap; }
+.t-progress .hl { display: grid; }
+.t-hist-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.t-hist-head h2 { margin: 0; }
+.t-hist-head select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); background: #fff; }
+.t-table { overflow-x: auto; margin-top: 10px; }
+.t-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.t-table th { text-align: left; color: var(--muted); font-size: 13px; padding: 6px 8px; border-bottom: 2px solid var(--line); }
+.t-table td { padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.t-table td:first-child { font-weight: 800; }
+.live { color: #3f8f1c; font-size: 12px; font-weight: 800; }
+.t-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.small-note { font-size: 13px; margin: 12px 0 0; }
+details.card summary { cursor: pointer; }
+pre { background: #eef3fb; padding: 10px; border-radius: 10px; overflow: auto; color: var(--ink); }
+.t-wrap .card h2 { display: block; }
+
+/* ---------- postavičky ---------- */
+.mission { margin-top: 6px; background: #fff3cd; border-radius: 10px; padding: 5px 9px; font-size: 13px; font-weight: 700; max-width: 260px; }
+.npc-room { font-size: 14px; opacity: .9; font-weight: 700; }
+.npc-bubble { position: relative; background: #eef3fb; border-radius: 16px; padding: 14px 16px; font-size: 19px; font-weight: 700; line-height: 1.4; margin-bottom: 14px; }
+.npc-bubble::before { content: ""; position: absolute; left: 22px; top: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: #eef3fb; }
+#npcExtra:not(:empty) { margin-bottom: 14px; }
+.npc-btns { display: grid; gap: 8px; }
+.npc-btns .btn { text-align: left; font-size: 17px; padding: 13px 16px; }
+.npc-btns .btn:disabled { opacity: .5; }
+.npc-yesno { display: flex; gap: 10px; flex-wrap: wrap; }
